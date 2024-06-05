@@ -20,8 +20,13 @@ class SeatGeekEvents(View):
             data = response.json()
             filtered_events = self.filter_events(data)
             return JsonResponse(filtered_events, safe=False)
+        elif response.status_code == 406:
+            return JsonResponse(
+                {'error': '406 Not Acceptable', 'message': 'The request could not be processed by the server.'},
+                status=406
+            )
         else:
-            return JsonResponse({'error': 'An error occurred while fetching data from SeatGeek API.', 'status': f'{response.status_code}'},
+            return JsonResponse({'error': 'An error occurred while fetching data from SeatGeek API.'},
                                 status=response.status_code)
 
     def filter_events(self, data):
@@ -30,17 +35,20 @@ class SeatGeekEvents(View):
         for event in events:
             filtered_event = {
                 'title': event.get('title'),
-                'short_title': event.get('short_title'),
+                'type': event.get('type'),
                 'description': event.get('description', ''),
                 'image': event['performers'][0].get('image') if event.get('performers') else '',
                 'rating': event.get('score', 0),
-                'organizer': event['performers'][0].get('name') if event.get('performers') else '',
+                'organizer': {
+                    'id': event['performers'][0].get('id') if event.get('performers') else '',
+                    'name': event['performers'][0].get('name') if event.get('performers') else ''
+                },
                 'location': {
                     'lat': event['venue']['location'].get('lat') if event.get('venue') else None,
                     'lon': event['venue']['location'].get('lon') if event.get('venue') else None,
                 },
-                'date': event.get('datetime_utc')
+                'date': event.get('datetime_utc'),
+                'url': event.get('url')
             }
             filtered.append(filtered_event)
         return filtered
-
